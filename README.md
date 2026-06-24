@@ -4,6 +4,19 @@ An advanced, interactive, and high-performance **OBD2 Digital Dashboard** for ve
 
 The project is built on the **Waveshare ESP32-C6-LCD-1.47** platform (172x320 resolution ST7789 IPS LCD with CST816S capacitive touch sensor), utilizing an **SN65HVD230** CAN transceiver connected directly to the ESP32-C6's built-in TWAI controller.
 
+## 📸 Live Demonstration
+
+<p align="center">
+  <img src="assets/dashboard_photo_1.jpg" width="32%" />
+  <img src="assets/dashboard_photo_2.jpg" width="32%" />
+  <img src="assets/dashboard_photo_3.jpg" width="32%" />
+</p>
+<p align="center">
+  <img src="assets/dashboard_photo_4.jpg" width="32%" />
+  <img src="assets/dashboard_photo_5.jpg" width="32%" />
+  <img src="assets/dashboard_photo_6.jpg" width="32%" />
+</p>
+
 ---
 
 ## 🛠️ Technical Features & Implementation
