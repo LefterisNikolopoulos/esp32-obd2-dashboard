@@ -285,6 +285,7 @@
  
  // Screen sleep
  bool screenSleeping       = false;
+  bool userIntervened       = false;
  bool uiNeedsFullRedraw    = false;  // set after wake/drawUI to force updateUI to repaint values
  unsigned long lastActivityMs = 0;          // reset on every touch
  #define SLEEP_TIMEOUT_MS  (5UL * 60UL * 1000UL)  // 5 λεπτά
@@ -690,62 +691,64 @@ void setup() {
       STATE_STABILIZED
     } startupState = STATE_ENGINE_OFF;
 
+    static unsigned long stableStartMs = 0;
+    static int lastStableRpm = 0;
+
     if (startupState == STATE_ENGINE_OFF) {
-      // Default/force volts tab when engine is off or cranking (currentRpm <= 500)
+      // Force volts tab when engine is off, unless user touches screen
       if (currentRpm <= 500) {
-        if (currentTab != TAB_SYSTEM || currentItemIndex[TAB_SYSTEM] != 0) {
-          // If the user hasn't touched the screen for 10 seconds, go back to Volts
-          if (millis() - lastActivityMs > 10000) {
-            switchTo(TAB_SYSTEM, 0);
-          }
+        if (!userIntervened && (currentTab != TAB_SYSTEM || currentItemIndex[TAB_SYSTEM] != 0)) {
+          switchTo(TAB_SYSTEM, 0);
         }
       }
 
-      // Once the engine successfully fires and RPM goes above 500 (running)
+      // If engine starts (RPM > 500)
       if (currentRpm > 500) {
-        if (currentRpm > 765 && currentSpeed == 0) {
-          // Cold start: RPM is high, and vehicle is stationary. Go to RPM tab (TAB_MAIN, 1).
-          startupState = STATE_WARMUP;
-          switchTo(TAB_MAIN, 1); // Force switch to RPM tab
-        } else {
-          // Warm start: engine starts and idle is already <= 765, OR already driving. Go straight to Speed.
-          startupState = STATE_STABILIZED;
-          switchTo(TAB_MAIN, 0); // Switch to Speed tab
-        }
+        startupState = STATE_WARMUP;
+        userIntervened = false; // Reset intervention flag for the new startup sequence
+        switchTo(TAB_MAIN, 1);  // Switch to RPM tab
+        lastStableRpm = currentRpm;
+        stableStartMs = millis();
       }
     }
     else if (startupState == STATE_WARMUP) {
-      // If engine turns off or drops below running threshold (RPM <= 500), reset to STATE_ENGINE_OFF and immediately switch to Volts tab
+      // If engine turns off
       if (currentRpm <= 500) {
         startupState = STATE_ENGINE_OFF;
+        userIntervened = false;
         switchTo(TAB_SYSTEM, 0);
       }
-      // If RPM drops to 765 or below, OR the car starts moving (speed > 0)
-      else if (currentRpm <= 765 || currentSpeed > 0) {
-        startupState = STATE_STABILIZED;
-        switchTo(TAB_MAIN, 0); // Switch to Speed tab
-      }
-      else {
-        // Keep/force staying on the RPM tab during warmup
-        if (currentTab != TAB_MAIN || currentItemIndex[TAB_MAIN] != 1) {
-          switchTo(TAB_MAIN, 1);
+      // If the user has NOT intervened manually, check for transition to Speed
+      else if (!userIntervened) {
+        if (currentSpeed > 0) {
+          // If the car starts moving, go straight to Speed
+          switchTo(TAB_MAIN, 0);
+          startupState = STATE_STABILIZED;
+        }
+        else {
+          // Check if RPM has stabilized for 5 seconds
+          if (abs(currentRpm - lastStableRpm) > 60) {
+            lastStableRpm = currentRpm;
+            stableStartMs = millis();
+          }
+          if (millis() - stableStartMs >= 5000) {
+            switchTo(TAB_MAIN, 0); // Switch to Speed tab
+            startupState = STATE_STABILIZED;
+          }
+          // Ensure we stay on the RPM tab during warmup if not yet stabilized
+          else if (currentTab != TAB_MAIN || currentItemIndex[TAB_MAIN] != 1) {
+            switchTo(TAB_MAIN, 1);
+          }
         }
       }
     }
     else if (startupState == STATE_STABILIZED) {
-      // If engine turns off (RPM <= 500), reset to STATE_ENGINE_OFF and immediately switch to Volts tab
-       if (currentRpm <= 500) {
+      // If engine turns off
+      if (currentRpm <= 500) {
         startupState = STATE_ENGINE_OFF;
+        userIntervened = false;
         switchTo(TAB_SYSTEM, 0);
       }
-    }
-
-    // ===== AUTO-SWITCH TO SPEED (LEGACY BACKUP) =====
-    static bool hasAutoSwitchedToSpeed = false;
-    if (!hasAutoSwitchedToSpeed && currentSpeed > 0) {
-      // Μόλις ξεκινήσουν τα χιλιόμετρα για πρώτη φορά (στο άναμμα του ESP32), πάμε στην καρτέλα Speed 
-      switchTo(TAB_MAIN, 0);
-      hasAutoSwitchedToSpeed = true; // Το κλειδώνουμε ώστε να μην ξαναγίνει στα φανάρια
     }
 }
  
@@ -2833,6 +2836,7 @@ void setup() {
  
    // Ανανέωσε τον χρόνο τελευταίας δραστηριότητας
    lastActivityMs = millis();
+    userIntervened = true;
  
    // Alert blink → tap = dismiss + 10s ελεύθερη πλοήγηση
    // Μετά τα 10s: αν ακόμα στην επικίνδυνη ζώνη → νέο alert αυτόματα
