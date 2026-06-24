@@ -1,0 +1,21 @@
+# Arduino IDE & Build output
+build/
+bin/
+*.hex
+*.elf
+*.bin
+
+# VS Code workspace folder
+.vscode/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Temporary or system files
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
