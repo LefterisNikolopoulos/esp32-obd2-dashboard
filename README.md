@@ -1,35 +1,37 @@
 # ESP32-C6 OBD2 Dashboard
 
-Ένα προηγμένο, διαδραστικό και γρήγορο **ψηφιακό όργανο OBD2 (Dashboard)** για αυτοκίνητα, σχεδιασμένο και δοκιμασμένο σε **VW Tiguan 5N 1.4 TSI (Twincharger)**. 
+An advanced, interactive, and high-performance **OBD2 Digital Dashboard** for vehicles, designed and tested on a **VW Tiguan 5N 1.4 TSI (Twincharger)**.
 
-Το project βασίζεται στην πλακέτα **Waveshare ESP32-C6-LCD-1.47** (οθόνη IPS ST7789 με ανάλυση 172x320 και αισθητήρα αφής CST816S), χρησιμοποιώντας έναν πομποδέκτη CAN **SN65HVD230** συνδεδεμένο απευθείας στον ελεγκτή TWAI του ESP32-C6.
-
-## 🛠️ Τεχνικά Χαρακτηριστικά & Υλοποίηση (Features & Implementation)
-
-*   **Ανάγνωση Τηλεμετρίας OBD2 σε Πραγματικό Χρόνο**: Λήψη και επεξεργασία δεδομένων απευθείας από τον δίαυλο CAN Bus (500kbps) του οχήματος, κάνοντας χρήση standard OBD2 PIDs με βελτιστοποιημένο ρυθμό δειγματοληψίας (polling rate).
-*   **Προσαρμοσμένο Γραφικό Περιβάλλον (Gestural UI)**: Σχεδίαση και ανάπτυξη συστήματος πλοήγησης με χειρονομίες (swipes) για τον αισθητήρα αφής CST816S. Περιλαμβάνει custom εφέ μετάβασης (slide/Venetian blinds animations) κατά την εναλλαγή καρτελών ή στοιχείων.
-*   **Αρχιτεκτονική 4 Θεματικών Ενοτήτων (Tabs)**:
-    1.  **MAIN**: Ένδειξη ταχύτητας, στροφών κινητήρα (με δυναμικό χρωματικό κώδικα και όριο ασφαλείας), θέσης πεταλούδας γκαζιού και πίεσης Turbo (υπολογιζόμενη σε bar από την απόλυτη πίεση πολλαπλής εισαγωγής MAP).
-    2.  **TEMPS**: Θερμοκρασία ψυκτικού υγρού (με αυτόματη ειδοποίηση υπερθέρμανσης) και θερμοκρασία αέρα εισαγωγής (IAT).
-    3.  **TRIP INFO**: Υπολογισμός απόστασης ταξιδιού, μέσης/μέγιστης ταχύτητας, κατανάλωσης καυσίμου σε λίτρα και μέσης κατανάλωσης ανά 100 χιλιόμετρα.
-    4.  **SYSTEM**: Τάση μπαταρίας, διαγνωστικό βλαβών (DTC) και χρονόμετρο επιτάχυνσης (Accel Timer).
-*   **Αλγόριθμος Υπολογισμού Κατανάλωσης 3 Επιπέδων**: Ανάπτυξη συστήματος δυναμικού υπολογισμού κατανάλωσης με τριπλή εναλλακτική (fallback) για μέγιστη ακρίβεια:
-    1.  *Επίπεδο 1*: Άμεση λήψη Fuel Rate (PID 0x5E) από τον εγκέφαλο του κινητήρα.
-    2.  *Επίπεδο 2*: Υπολογισμός μέσω της μάζας εισερχόμενου αέρα (MAF) σε περίπτωση μη υποστήριξης του PID 0x5E.
-    3.  *Επίπεδο 3 (Speed-Density)*: Μαθηματικό μοντέλο υπολογισμού μέσω της πίεσης (MAP), των στροφών (RPM) και της θερμοκρασίας εισαγωγής (IAT), παραμετροποιημένο ειδικά για τις ανάγκες και τον κυβισμό του κινητήρα EA111 1.4 TSI.
-*   **Αυτόματη Διαχείριση Κατάστασης Κινητήρα (State Machine)**:
-    *   Έξυπνος έλεγχος κατάσταση λειτουργίας του οχήματος (Engine Off / Warmup / Stabilized).
-    *   Αν ο κινητήρας σβήσει, το σύστημα μεταβαίνει αυτόματα στην καρτέλα της μπαταρίας μετά από 10 δευτερόλεπτα αδράνειας για την αποφυγή αποφόρτισης, ενώ επιστρέφει αυτόματα στην καρτέλα της ταχύτητας μόλις ανιχνευθεί κίνηση.
-*   **Χρονόμετρο Επιδόσεων Υψηλής Ακρίβειας (Performance Timer)**: Custom υλοποίηση μέτρησης επιτάχυνσης (0-100 km/h ή 60-120 km/h) με live ενημέρωση χρόνου/ταχύτητας και τελική αναφορά (χρόνος, απόσταση σε μέτρα, ταχύτητα εξόδου).
-*   **Διαγνωστικό Σφαλμάτων & Διαγραφή DTC (Mode 03/04)**: Ανάγνωση ενεργών κωδικών σφάλματος από τον εγκέφαλο (MIL Status / DTC Codes) και ενσωμάτωση λειτουργίας διαγραφής τους απευθείας από την οθόνη με παρατεταμένο άγγιγμα 2 δευτερολέπτων.
-*   **Δυναμικές Αναλογικές Ενδείξεις Χωρίς Τρεμόπαιγμα (Custom Easing Gauges)**: 
-    *   Σχεδίαση custom ημικυκλικών αναλογικών οργάνων με μαθηματικά φυσικής (spring/critically-damped physics) για εξαιρετικά ομαλή κίνηση των δεικτών.
-    *   Ανάπτυξη αλγορίθμου *delta-rendering* (επανασχεδίαση μόνο της μεταβαλλόμενης γωνίας του τόξου) για μέγιστη εξοικονόμηση πόρων της CPU και εξάλειψη του τρεμοπαίγματος (flickering).
-*   **Πολυνηματική Σχεδίαση (FreeRTOS Multitasking)**: Κατανομή εργασιών σε περιβάλλον πραγματικού χρόνου (RTOS). Η ανάγνωση του διαύλου CAN εκτελείται σε ξεχωριστό background task (`canTask`), ενώ ο έλεγχος του UI και της αφής εκτελείται στο κύριο thread, με ασφαλή ανταλλαγή δεδομένων μέσω Mutexes.
+The project is built on the **Waveshare ESP32-C6-LCD-1.47** platform (172x320 resolution ST7789 IPS LCD with CST816S capacitive touch sensor), utilizing an **SN65HVD230** CAN transceiver connected directly to the ESP32-C6's built-in TWAI controller.
 
 ---
 
-## 🔌 Συνδεσμολογία & Pins (Hardware Pinout)
+## 🛠️ Technical Features & Implementation
+
+*   **Real-Time OBD2 Telemetry**: Reads and processes data directly from the vehicle's CAN Bus (500kbps) using standard OBD2 PIDs with an optimized polling rate.
+*   **Custom Gestural User Interface (UI)**: Designed and developed a swipe gesture navigation system for the CST816S touch sensor. Includes custom slide/Venetian blinds transition animations for switching tabs and items.
+*   **4-Tab Architecture**:
+    1.  **MAIN**: Displays speed (km/h), engine RPM (with dynamic color coding and safety threshold indicators), throttle position (%), and turbo boost pressure (calculated in bar from the Manifold Absolute Pressure - MAP).
+    2.  **TEMPS**: Coolant temperature (°C) (with automatic overheat alert warnings) and intake air temperature (°C) (IAT).
+    3.  **TRIP INFO**: Calculates trip distance (km), average/maximum speed (km/h), fuel consumption in liters (L), and average fuel economy (L/100km).
+    4.  **SYSTEM**: Battery voltage (V), Diagnostic Trouble Codes (DTC) reader, and performance acceleration timer.
+*   **3-Tier Fuel Consumption Estimation Algorithm**: Developed a dynamic fuel consumption calculation system with a triple fallback mechanism for maximum accuracy:
+    1.  *Tier 1*: Direct engine fuel rate query (PID 0x5E) from the engine ECU.
+    2.  *Tier 2*: Calculation based on Mass Air Flow (MAF) in case PID 0x5E is unsupported.
+    3.  *Tier 3 (Speed-Density)*: Mathematical model estimating consumption from manifold absolute pressure (MAP), RPM, and intake air temperature (IAT), custom-tuned for the displacement and efficiency of the VAG 1.4 TSI EA111 engine.
+*   **Engine Startup State Machine**:
+    *   Intelligent vehicle status tracking (Engine Off / Warmup / Stabilized).
+    *   If the engine shuts off, the interface automatically switches to the battery tab after 10 seconds of inactivity to prevent battery drain. It automatically switches back to the speed tab once vehicle motion is detected.
+*   **High-Precision Performance Timer**: Custom implementation measuring acceleration runs (0-100 km/h or 60-120 km/h) with live time and speed updates, providing a final summary (elapsed time, distance in meters, exit speed).
+*   **DTC Diagnosis & Clearing (Mode 03/04)**: Reads active trouble codes (MIL status and DTCs) from the ECU, and integrates a clear fault codes function directly from the display by holding the screen for 2 seconds.
+*   **Flicker-Free Analog Gauges (Custom Easing)**:
+    *   Designed custom semicircular analog gauges using physics-based math (spring/critically-damped physics) for smooth pointer transitions.
+    *   Developed a custom *delta-rendering* algorithm (redrawing only the changing angular sector of the arc) to maximize CPU efficiency and eliminate screen flickering.
+*   **Multithreaded Real-Time Architecture (FreeRTOS)**: Task scheduling in a real-time operating system (RTOS) environment. The CAN bus reading runs in a dedicated background task (`canTask`), while UI rendering and touch detection run in the main thread, utilizing mutexes for thread-safe data access.
+
+---
+
+## 🔌 Pinout & Hardware Connections
 
 ### Waveshare ESP32-C6-LCD-1.47 Mappings:
 *   **LCD Display (ST7789 SPI)**:
@@ -38,7 +40,7 @@
     *   `TFT_CS` -> GPIO 14 (LCD_CS)
     *   `TFT_DC` -> GPIO 15 (LCD_DC)
     *   `TFT_RST` -> GPIO 22 (LCD_RST)
-    *   `TFT_BL` -> GPIO 23 (LCD_BL) (PWM φωτεινότητας)
+    *   `TFT_BL` -> GPIO 23 (LCD_BL) (PWM brightness control)
 *   **Touch Screen (CST816S I2C)**:
     *   `TOUCH_SDA` -> GPIO 18
     *   `TOUCH_SCL` -> GPIO 19
@@ -49,5 +51,3 @@
 *   **CAN Transceiver (SN65HVD230)**:
     *   `CAN_TX` -> GPIO 5
     *   `CAN_RX` -> GPIO 4
-
-
