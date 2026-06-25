@@ -726,12 +726,12 @@ void setup() {
           startupState = STATE_STABILIZED;
         }
         else {
-          // Check if RPM has stabilized for 5 seconds
-          if (abs(currentRpm - lastStableRpm) > 60) {
+          // Check if RPM has stabilized for 10 seconds (within +/- 10 RPM)
+          if (abs(currentRpm - lastStableRpm) > 10) {
             lastStableRpm = currentRpm;
             stableStartMs = millis();
           }
-          if (millis() - stableStartMs >= 5000) {
+          if (millis() - stableStartMs >= 10000) {
             switchTo(TAB_MAIN, 0); // Switch to Speed tab
             startupState = STATE_STABILIZED;
           }
